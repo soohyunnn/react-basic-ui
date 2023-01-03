@@ -1,78 +1,60 @@
-import React, { useEffect, useState } from "react";
-import logo from "./logo.svg";
-import "./App.css";
-import SkeletonPage from "./pages/SkeletonPage";
-import CarouselPage from "./pages/CarouselPage";
-import Pagination from "./components/Pagination";
-import axios from "axios";
+import React, { useState } from "react";
+import styled from "@emotion/styled/macro";
+import { CSSTransition } from "react-transition-group";
 
-interface Airline {
-  id: number;
-  name: string;
-  country: string;
-  logo: string;
-  slogan: string;
-  head_quaters: string;
-  website: string;
-  established: string;
-}
+import Modal from "./components/Modal/Modal";
 
-interface Passenger {
-  _id: string;
-  name: string;
-  trips: number;
-  airline: Airline;
-  __v: number;
-}
+const Container = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100vh;
+`;
 
-interface Response {
-  totalPassengers: number;
-  totalPages: number;
-  data: Array<Passenger>;
-}
+const Button = styled.button`
+  width: 280px;
+  height: 60px;
+  border-radius: 12px;
+  color: #fff;
+  background-color: #3d6afe;
+  margin: 0;
+  border: none;
+  font-size: 24px;
+  &:active {
+    opacity: 0.8;
+  }
+`;
+
+const ModalBody = styled.div`
+  border-radius: 8px;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  background: #fff;
+  max-height: calc(100vh - 16px);
+  overflow: hidden auto;
+  position: relative;
+  padding-block: 12px;
+  padding-inline: 24px;
+`;
 
 function App() {
-  const [page, setPage] = useState<number>(0);
+  const [isOpen, setIsOpen] = useState<boolean>(false);
 
-  const [totalPages, setTotalPages] = useState<number>(0);
-  const [items, setItems] = useState<Array<Passenger>>([]);
-
-  const handlePageChange = (currentPage: number): void => {
-    setPage(currentPage);
-  };
-
-  useEffect(() => {
-    const fetch = async () => {
-      const params = { page, size: 10 };
-      const {
-        data: { totalPages, data },
-      } = await axios.get<Response>(
-        "https://api.instantwebtools.net/v1/passenger",
-        { params }
-      );
-
-      setTotalPages(totalPages);
-      setItems(data);
-    };
-
-    fetch();
-  }, [page]);
+  const handleOpen = () => setIsOpen(true);
+  const handleClose = () => setIsOpen(false);
 
   return (
-    <div className="App">
-      {/* <SkeletonPage /> */}
-      {/* <CarouselPage /> */}
-      <ul>
-        {items.map((item) => (
-          <li key={item._id}>{item.name}</li>
-        ))}
-      </ul>
-      <Pagination
-        count={totalPages}
-        page={page}
-        onPageChange={handlePageChange}
-      />
-    </div>
+    <Container className="app">
+      <Button onClick={handleOpen}>OPEN</Button>
+      <Modal isOpen={isOpen} onClose={handleClose}>
+        <ModalBody>
+          <h2>Text in a modal</h2>
+          <p>
+            Duis mollis, est non commodo luctus, nisi erat porttitor ligula.
+          </p>
+        </ModalBody>
+      </Modal>
+    </Container>
   );
 }
 
