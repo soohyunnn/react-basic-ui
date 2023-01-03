@@ -1,60 +1,81 @@
-import React, { useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
+import axios from "axios";
 import styled from "@emotion/styled/macro";
-import { CSSTransition } from "react-transition-group";
+import { throttle } from "throttle-debounce";
 
-import Modal from "./components/Modal/Modal";
+import { Passenger, Response } from "./types";
 
-const Container = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 100%;
-  height: 100vh;
+const ListItem = styled.li`
+  font-size: 36px;
 `;
 
-const Button = styled.button`
-  width: 280px;
-  height: 60px;
-  border-radius: 12px;
-  color: #fff;
-  background-color: #3d6afe;
+const List = styled.ul`
+  overflow-x: hidden;
+  overflow-y: scroll;
+  list-style: none;
   margin: 0;
-  border: none;
-  font-size: 24px;
-  &:active {
-    opacity: 0.8;
+  padding: 0;
+  width: 100%;
+  height: 512px;
+  ${ListItem} + ${ListItem} {
+    margin-top: 12px;
   }
 `;
 
-const ModalBody = styled.div`
-  border-radius: 8px;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
-  background: #fff;
-  max-height: calc(100vh - 16px);
-  overflow: hidden auto;
-  position: relative;
-  padding-block: 12px;
-  padding-inline: 24px;
-`;
-
 function App() {
-  const [isOpen, setIsOpen] = useState<boolean>(false);
+  const scrollRef = useRef<HTMLUListElement | null>(null);
+  const pageRef = useRef<number>(0);
 
-  const handleOpen = () => setIsOpen(true);
-  const handleClose = () => setIsOpen(false);
+  const [items, setItems] = useState<Array<Passenger>>([]);
+  const [isLast, setIsLast] = useState<boolean>(false);
+  const [isScrollBottom, setIsScrollBottom] = useState<boolean>(false);
+
+  const handleScroll = throttle(1000, () => {
+    if (scrollRef.current) {
+      const { scrollHeight, offsetHeight, scrollTop } = scrollRef.current;
+
+      const offset = 50;
+
+      setIsScrollBottom(scrollHeight - offsetHeight - scrollTop < offset);
+    }
+  });
+
+  const fetch = async (init?: boolean) => {
+    const params = { size: 30, page: pageRef.current };
+
+    try {
+      const res = await axios.get<Response>(
+        "https://api.instantwebtools.net/v1/passenger",
+        { params }
+      );
+
+      setItems(init ? res.data.data : items.concat(res.data.data));
+      setIsLast(res.data.totalPages === pageRef.current);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  useEffect(() => {
+    if (isScrollBottom) {
+      pageRef.current = pageRef.current + 1;
+
+      !isLast && fetch();
+    }
+  }, [isScrollBottom, isLast]);
+
+  useEffect(() => {
+    fetch(true);
+  }, []);
 
   return (
-    <Container className="app">
-      <Button onClick={handleOpen}>OPEN</Button>
-      <Modal isOpen={isOpen} onClose={handleClose}>
-        <ModalBody>
-          <h2>Text in a modal</h2>
-          <p>
-            Duis mollis, est non commodo luctus, nisi erat porttitor ligula.
-          </p>
-        </ModalBody>
-      </Modal>
-    </Container>
+    <div>
+      <List ref={scrollRef} onScroll={handleScroll}>
+        {items.map((item) => (
+          <ListItem key={item._id}>{item.name}</ListItem>
+        ))}
+      </List>
+    </div>
   );
 }
 
